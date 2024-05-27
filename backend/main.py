@@ -59,7 +59,7 @@ def delete_product(user_id):
     db.session.delete(product)
     db.session.commit()
 
-    return jsonify({"message": "Producto eliminado"}), 201
+    return jsonify({"message": "Producto eliminado"}), 200
 
 if __name__ == "__main__":
     with app.app_context():

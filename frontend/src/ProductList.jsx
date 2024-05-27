@@ -1,6 +1,22 @@
 import React from "react";
 
-const ProductList = ({products}) => {
+const ProductList = ({ products, updateProduct, updateCallback }) => {
+    const onDelete = async (id) => {
+        try {
+            const options = {
+                method: "DELETE"
+            }
+            const response = await fetch(`http://127.0.0.1:5000/delete_product/${id}`, options)
+            if (response.status === 200) {
+                updateCallback()
+            } else {
+                console.error("Failed to delete")
+            }
+        } catch (error) {
+            alert(error)
+        }
+    }
+
     return <div>
         <h2>Productos</h2>
         <table>
@@ -23,8 +39,8 @@ const ProductList = ({products}) => {
                         <td>{product.contact}</td>
                         <td>{product.price}</td>
                         <td>
-                            <button>Update</button>
-                            <button>Delete</button>
+                            <button onClick={() => updateProduct(product)}>Update</button>
+                            <button onClick={() => onDelete(product.id)}>Delete</button>
                         </td>
                     </tr>
                 ))}

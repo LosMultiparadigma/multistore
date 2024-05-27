@@ -1,11 +1,13 @@
 import { useState } from "react";
 
-const ProductForm = ({ }) => {
-    const [productName, setProductName] = useState("");
-    const [category, setCategory] = useState("");
-    const [description, setDescription] = useState("");
-    const [contact, setContact] = useState("");
-    const [price, setPrice] = useState("");
+const ProductForm = ({ existingProduct = {}, updateCallback }) => {
+    const [productName, setProductName] = useState(existingProduct.productName || "");
+    const [category, setCategory] = useState(existingProduct.category || "");
+    const [description, setDescription] = useState(existingProduct.description || "");
+    const [contact, setContact] = useState(existingProduct.contact || "");
+    const [price, setPrice] = useState(existingProduct.price || "");
+
+    const updating = Object.entries(existingProduct).length !== 0;
 
     const onSubmit = async (e) => {
         e.preventDefault()
@@ -17,9 +19,9 @@ const ProductForm = ({ }) => {
             contact,
             price
         }
-        const url = "http://127.0.0.1:5000/create_product"
+        const url = "http://127.0.0.1:5000/" + (updating ? `update_product/${existingProduct.id}` : "create_product")
         const options = {
-            method: "POST",
+            method: updating ? "PATCH" : "POST",
             headers: {
                 "Content-Type": "application/json"
             },
@@ -30,7 +32,7 @@ const ProductForm = ({ }) => {
             const message = await response.json()
             alert(data.message)
         } else {
-            // Éxito
+            updateCallback()
         }
     }
 
@@ -61,7 +63,7 @@ const ProductForm = ({ }) => {
                 <input type="text" id="price" value={price} onChange={(e) => setPrice(e.target.value)} />
             </div>
             
-            <button type="submit">Agregar producto</button>
+            <button type="submit">{updating ? "Editar" : "Crear"}</button>
         </form> 
     );
 };
