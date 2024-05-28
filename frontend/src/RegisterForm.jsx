@@ -24,7 +24,7 @@ const RegisterForm = () => {
             const data = await response.json();
             if (response.ok) {
                 login(data.user);
-                setMessage('Registro exitoso');
+                setMessage('Usuario registrado, enviando correo de registro.');
             } else {
                 setMessage(data.message);
             }
