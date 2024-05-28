@@ -2,12 +2,17 @@ import { useState, useEffect } from 'react';
 import ProductList from './ProductList';
 import './App.css';
 import ProductForm from './ProductForm';
+import RegisterForm from './RegisterForm';
+import LoginForm from './LoginForm';
+import LogoutButton from './LogoutButton';
+import { useAuth } from './AuthContext';
 
 function App() {
   // const [products, setProducts] = useState([{"productName": "Iphone", "category": "Tecnologia", "description": "Celular", "contact": "ciencias.unam", "price": 3, id: 1}])
   const [products, setProducts] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [currentProduct, setCurrentProduct] = useState({})
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchProducts()
@@ -41,18 +46,32 @@ function App() {
   }
 
   return (
-    <>
-      <ProductList products={products} updateProduct={openEditModal} updateCallback={onUpdate}/>
-      <button onClick={openCreateModal}>Crear Nuevo Producto</button>
-      {isModalOpen && <div className="modal">
-          <div className="modal-content">
-            <span className="close" onClick={closeModal}>&times;</span>
-            <ProductForm existingProduct={currentProduct} updateCallback={onUpdate}/>
-          </div>
-        </div>
-      }
-    </>
-  );
+        <>
+            <header>
+                {user ? (
+                    <div>
+                        <span>Bienvenido, {user.username}</span>
+                        <LogoutButton />
+                    </div>
+                ) : (
+                    <div>
+                        <RegisterForm />
+                        <LoginForm />
+                    </div>
+                )}
+            </header>
+            <ProductList products={products} updateProduct={openEditModal} updateCallback={onUpdate} />
+            {user && <button onClick={openCreateModal}>Crear Nuevo Producto</button>}
+            {isModalOpen && (
+                <div className="modal">
+                    <div className="modal-content">
+                        <span className="close" onClick={closeModal}>&times;</span>
+                        <ProductForm existingProduct={currentProduct} updateCallback={onUpdate} />
+                    </div>
+                </div>
+            )}
+        </>
+    );
 }
 
 export default App;
