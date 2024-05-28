@@ -1,6 +1,48 @@
-from flask import request, jsonify
-from config import app, db
-from models import Product
+from flask import request, jsonify, redirect, url_for
+from config import app, db, login_manager
+from models import Product, User
+from flask_login import login_user, login_required, logout_user, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+@app.route("/register", methods=["POST"])
+def register():
+    username = request.json.get("username")
+    email = request.json.get("email")
+    password = request.json.get("password")
+
+    if User.query.filter_by(email=email).first():
+        return jsonify({"message": "Email already registered"}), 400
+
+    hashed_password = generate_password_hash(password, method='sha256')
+    new_user = User(username=username, email=email, password=hashed_password)
+    db.session.add(new_user)
+    db.session.commit()
+
+    return jsonify({"message": "User registered successfully"}), 201
+
+@app.route("/login", methods=["POST"])
+def login():
+    email = request.json.get("email")
+    password = request.json.get("password")
+
+    user = User.query.filter_by(email=email).first()
+
+    if not user or not check_password_hash(user.password, password):
+        return jsonify({"message": "Invalid credentials"}), 401
+
+    login_user(user)
+    return jsonify({"message": "Logged in successfully", "user": user.to_json()}), 200
+
+@app.route("/logout", methods=["POST"])
+@login_required
+def logout():
+    logout_user()
+    return jsonify({"message": "Logged out successfully"}), 200
+
 
 @app.route("/products", methods=["GET"])
 def get_products():
@@ -60,6 +102,7 @@ def delete_product(user_id):
     db.session.commit()
 
     return jsonify({"message": "Producto eliminado"}), 200
+
 
 if __name__ == "__main__":
     with app.app_context():
