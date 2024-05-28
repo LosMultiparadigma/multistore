@@ -14,15 +14,33 @@ def register():
     email = request.json.get("email")
     password = request.json.get("password")
 
-    if User.query.filter_by(email=email).first():
-        return jsonify({"message": "Email already registered"}), 400
+    if not username or not email or not password:
+        return jsonify({"message": "Debes incluir un nombre de usuario, un correo electrónico y una contraseña"}), 400
+
+    existing_user = User.query.filter_by(email=email).first()
+    if existing_user:
+        return jsonify({"message": "El usuario ya existe"}), 400
 
     hashed_password = generate_password_hash(password, method='sha256')
     new_user = User(username=username, email=email, password=hashed_password)
-    db.session.add(new_user)
-    db.session.commit()
 
-    return jsonify({"message": "User registered successfully"}), 201
+    try:
+        db.session.add(new_user)
+        db.session.commit()
+
+        # Enviar correo de confirmación
+        msg = Message(
+            "Bienvenido a nuestra plataforma",
+            sender="multistore343@gmail.com",
+            recipients=[email]
+        )
+        msg.body = f"Hola {username}, gracias por registrarte en nuestra plataforma."
+        mail.send(msg)
+
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
+
+    return jsonify({"message": "Usuario creado y correo enviado"}), 201
 
 @app.route("/login", methods=["POST"])
 def login():
