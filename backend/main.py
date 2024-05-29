@@ -1,8 +1,14 @@
 from flask import request, jsonify, redirect, url_for
 from config import app, db, login_manager
 from models import Product, User
-from flask_login import login_user, login_required, logout_user, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from flask_bcrypt import Bcrypt
+from flask_cors import CORS  # Importar CORS
+
+# Inicializar CORS con la aplicación
+CORS(app, supports_credentials=True)
+
+bcrypt = Bcrypt(app)
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -15,52 +21,40 @@ def register():
     password = request.json.get("password")
 
     if not username or not email or not password:
-        return jsonify({"message": "Debes incluir un nombre de usuario, un correo electrónico y una contraseña"}), 400
+        return jsonify({"message": "Faltan datos"}), 400
 
-    existing_user = User.query.filter_by(email=email).first()
-    if existing_user:
+    user = User.query.filter_by(email=email).first()
+    if user:
         return jsonify({"message": "El usuario ya existe"}), 400
 
-    hashed_password = generate_password_hash(password, method='sha256')
-    new_user = User(username=username, email=email, password=hashed_password)
+    hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
+    new_user = User(username=username, email=email, password_hash=hashed_password)
 
-    try:
-        db.session.add(new_user)
-        db.session.commit()
+    db.session.add(new_user)
+    db.session.commit()
 
-        # Enviar correo de confirmación
-        msg = Message(
-            "Bienvenido a nuestra plataforma",
-            sender="multistore343@gmail.com",
-            recipients=[email]
-        )
-        msg.body = f"Hola {username}, gracias por registrarte en nuestra plataforma."
-        mail.send(msg)
-
-    except Exception as e:
-        return jsonify({"message": str(e)}), 400
-
-    return jsonify({"message": "Usuario creado y correo enviado"}), 201
+    return jsonify({"message": "Usuario registrado"}), 201
 
 @app.route("/login", methods=["POST"])
 def login():
     email = request.json.get("email")
     password = request.json.get("password")
 
+    if not email or not password:
+        return jsonify({"message": "Faltan datos"}), 400
+
     user = User.query.filter_by(email=email).first()
-
-    if not user or not check_password_hash(user.password, password):
-        return jsonify({"message": "Invalid credentials"}), 401
-
-    login_user(user)
-    return jsonify({"message": "Logged in successfully", "user": user.to_json()}), 200
+    if user and bcrypt.check_password_hash(user.password_hash, password):
+        login_user(user)
+        return jsonify({"message": "Inicio de sesión exitoso"}), 200
+    else:
+        return jsonify({"message": "Credenciales incorrectas"}), 400
 
 @app.route("/logout", methods=["POST"])
 @login_required
 def logout():
     logout_user()
-    return jsonify({"message": "Logged out successfully"}), 200
-
+    return jsonify({"message": "Cierre de sesión exitoso"}), 200
 
 @app.route("/products", methods=["GET"])
 def get_products():
@@ -125,5 +119,4 @@ def delete_product(user_id):
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
-
     app.run(debug=True)
